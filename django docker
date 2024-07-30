@@ -1,0 +1,94 @@
+requirements.txt
+/
+django==4.2.7  # Replace with the desired Django version
+psycopg2==3.10.7  # Database adapter for PostgreSQL
+
+# Additional dependencies specific to your project
+# These could include packages for authentication, social login, data analysis, etc.
+
+# Example of additional packages
+# requests==2.28.1  # For making HTTP requests
+# matplotlib==3.6.2  # For data visualization
+
+#backend django dockerfile
+# Use a slim Python image for a smaller container size
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements.txt
+COPY requirements.txt ./
+
+# Install dependencies
+RUN pip install -r requirements.txt
+
+# Copy project code
+COPY . .
+
+# Expose container port (adjust if needed)
+EXPOSE 8000
+
+# Run Django development server (modify for production)
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+
+///////////////
+#frontend
+# Base image for Node.js
+FROM node:18
+
+# Set working directory
+WORKDIR /app
+
+# Copy package.json and install dependencies
+COPY package.json ./
+RUN npm install
+
+# Copy React app code
+COPY . .
+
+# Expose React port (adjust if needed)
+EXPOSE 3000
+
+# Start React development server (adjust as needed)
+CMD [ "npm", "start" ]
+
+
+///////////////
+#docker-compose
+version: '3'
+
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: mydatabase  # Replace with your desired database name
+      POSTGRES_USER: postgres   # Replace with your desired username
+      POSTGRES_PASSWORD: password  # Replace with a strong password (use a password manager!)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persist data
+
+  backend:
+    build: ./backend
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      # Consider adding environment variables specific to your Django project
+    volumes:
+      - ./backend/app:/app  # Mount only the app directory (adjust based on your project structure)
+    ports:
+      - "8000:8000"  # Maps container port 8000 to host port 8000
+    depends_on:
+      - db
+
+  frontend:  # Include this service if using separate React Dockerfile
+    build: ./frontend
+    ports:
+      - "3000:3000"  # Maps container port 3000 to host port 3000
+    volumes:
+      - ./frontend:/app  # Mounts your React code directory
+
+volumes:
+  postgres_data: {}
